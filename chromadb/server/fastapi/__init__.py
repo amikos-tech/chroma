@@ -1,15 +1,13 @@
-import functools
-from typing import Any, Callable, Dict, List, Sequence, get_type_hints
+from typing import Any, Callable, Dict, List, Sequence
 import fastapi
-import decimal
 from fastapi import FastAPI as _FastAPI, Response
 from fastapi.responses import JSONResponse
-from fastapi.openapi.utils import get_openapi
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from fastapi import HTTPException, status
 from uuid import UUID
+
 
 import chromadb
 from chromadb.api.models.Collection import Collection
@@ -98,29 +96,11 @@ class ChromaAPIRouter(fastapi.APIRouter):
         super().add_api_route(path, *args, **kwargs)
 
 
-def customize_openapi(app):
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi(
-        title="ChromaDB API",
-        version="1.0.0",
-        description="This is OpenAPI schema for ChromaDB API.",
-        routes=app.routes,
-        openapi_version="3.0.2",
-    )
-    openapi_schema["info"]["x-logo"] = {
-        "url": "https://www.trychroma.com/chroma-logo.png"
-    }
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-
 class FastAPI(chromadb.server.Server):
     def __init__(self, settings: Settings):
         super().__init__(settings)
         Telemetry.SERVER_CONTEXT = ServerContext.FASTAPI
         self._app = fastapi.FastAPI(debug=True)
-        self._app.openapi = functools.partial(customize_openapi, app=self._app)
         self._api: chromadb.api.API = chromadb.Client(settings)
 
         self._app.middleware("http")(catch_exceptions_middleware)
@@ -133,26 +113,22 @@ class FastAPI(chromadb.server.Server):
 
         self.router = ChromaAPIRouter()
 
-        self.router.add_api_route("/api/v1", self.root, methods=["GET"],
-                                  response_model=get_type_hints(self.root)["return"])
-        self.router.add_api_route("/api/v1/reset", self.reset, methods=["POST"],
-                                  response_model=get_type_hints(self.reset)["return"])
-        self.router.add_api_route("/api/v1/version", self.version, methods=["GET"],
-                                  response_model=get_type_hints(self.version)["return"])
-        self.router.add_api_route("/api/v1/heartbeat", self.heartbeat, methods=["GET"],
-                                  response_model=get_type_hints(self.heartbeat)["return"])
+        self.router.add_api_route("/api/v1", self.root, methods=["GET"])
+        self.router.add_api_route("/api/v1/reset", self.reset, methods=["POST"])
+        self.router.add_api_route("/api/v1/version", self.version, methods=["GET"])
+        self.router.add_api_route("/api/v1/heartbeat", self.heartbeat, methods=["GET"])
 
         self.router.add_api_route(
             "/api/v1/collections",
             self.list_collections,
             methods=["GET"],
-            response_model=get_type_hints(self.list_collections)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections",
             self.create_collection,
             methods=["POST"],
-            response_model=get_type_hints(self.create_collection)["return"],
+            response_model=None,
         )
 
         self.router.add_api_route(
@@ -160,65 +136,61 @@ class FastAPI(chromadb.server.Server):
             self.add,
             methods=["POST"],
             status_code=status.HTTP_201_CREATED,
-            response_model=get_type_hints(self.add)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/update",
             self.update,
             methods=["POST"],
-            response_model=get_type_hints(self.update)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/upsert",
             self.upsert,
             methods=["POST"],
-            response_model=get_type_hints(self.upsert)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/get",
             self.get,
             methods=["POST"],
-            response_model=get_type_hints(self.get)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/delete",
             self.delete,
             methods=["POST"],
-            response_model=get_type_hints(self.delete)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/count",
             self.count,
             methods=["GET"],
-            response_model=get_type_hints(self.count)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/query",
             self.get_nearest_neighbors,
             methods=["POST"],
-            response_model=get_type_hints(self.get_nearest_neighbors)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_name}",
             self.get_collection,
             methods=["GET"],
-            response_model=get_type_hints(self.get_collection)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}",
             self.update_collection,
             methods=["PUT"],
-            # using instanceof doesn't work here for some reason
-            response_model=None if get_type_hints(self.update_collection)["return"] is type(None) else
-            get_type_hints(self.update_collection)["return"],
+            response_model=None,
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_name}",
             self.delete_collection,
             methods=["DELETE"],
-            # using instanceof doesn't work here for some reason
-            response_model=None if get_type_hints(self.update_collection)["return"] is type(None) else
-            get_type_hints(self.update_collection)["return"],
+            response_model=None,
         )
 
         self._app.include_router(self.router)
@@ -228,10 +200,10 @@ class FastAPI(chromadb.server.Server):
     def app(self) -> fastapi.FastAPI:
         return self._app
 
-    def root(self) -> Dict[str, decimal.Decimal]:
+    def root(self) -> Dict[str, int]:
         return {"nanosecond heartbeat": self._api.heartbeat()}
 
-    def heartbeat(self) -> Dict[str, decimal.Decimal]:
+    def heartbeat(self) -> Dict[str, int]:
         return self.root()
 
     def version(self) -> str:
@@ -252,17 +224,17 @@ class FastAPI(chromadb.server.Server):
 
     def update_collection(
         self, collection_id: str, collection: UpdateCollection
-    ) -> Collection:
+    ) -> None:
         return self._api._modify(
             id=_uuid(collection_id),
             new_name=collection.new_name,
             new_metadata=collection.new_metadata,
         )
 
-    def delete_collection(self, collection_name: str) -> Collection:
+    def delete_collection(self, collection_name: str) -> None:
         return self._api.delete_collection(collection_name)
 
-    def add(self, collection_id: str, add: AddEmbedding) -> bool:
+    def add(self, collection_id: str, add: AddEmbedding) -> None:
         try:
             result = self._api._add(
                 collection_id=_uuid(collection_id),
@@ -275,7 +247,7 @@ class FastAPI(chromadb.server.Server):
             raise HTTPException(status_code=500, detail=str(e))
         return result
 
-    def update(self, collection_id: str, add: UpdateEmbedding) -> bool:
+    def update(self, collection_id: str, add: UpdateEmbedding) -> None:
         return self._api._update(
             ids=add.ids,
             collection_id=_uuid(collection_id),
@@ -284,7 +256,7 @@ class FastAPI(chromadb.server.Server):
             metadatas=add.metadatas,
         )
 
-    def upsert(self, collection_id: str, upsert: AddEmbedding) -> bool:
+    def upsert(self, collection_id: str, upsert: AddEmbedding) -> None:
         return self._api._upsert(
             collection_id=_uuid(collection_id),
             ids=upsert.ids,

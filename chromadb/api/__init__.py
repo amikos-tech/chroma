@@ -138,7 +138,7 @@ class API(Component, ABC):
         id: UUID,
         new_name: Optional[str] = None,
         new_metadata: Optional[CollectionMetadata] = None,
-    ) -> Collection:
+    ) -> None:
         """[Internal] Modify a collection by UUID. Can update the name and/or metadata.
 
         Args:
@@ -154,7 +154,7 @@ class API(Component, ABC):
     def delete_collection(
         self,
         name: str,
-    ) -> Collection:
+    ) -> None:
         """Delete a collection with the given name.
         Args:
             name: The name of the collection to delete.
