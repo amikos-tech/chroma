@@ -32,6 +32,16 @@ class InvalidCollectionException(ChromaError):
         return "InvalidCollection"
 
 
+class CollectionNotFoundError(ChromaError):
+    @overrides
+    def code(self) -> int:
+        return 404  # Conflict
+
+    @classmethod
+    @overrides
+    def name(cls) -> str:
+        return "CollectionNotFound"
+
 class IDAlreadyExistsError(ChromaError):
     @overrides
     def code(self) -> int:
