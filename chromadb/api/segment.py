@@ -6,7 +6,7 @@ from chromadb.telemetry import Telemetry
 from chromadb.ingest import Producer
 from chromadb.api.models.Collection import Collection
 from chromadb import __version__
-from chromadb.errors import InvalidDimensionException, InvalidCollectionException
+from chromadb.errors import InvalidDimensionException, InvalidCollectionException, CollectionNotFoundError
 import chromadb.utils.embedding_functions as ef
 
 from chromadb.api.types import (
@@ -176,7 +176,7 @@ class SegmentAPI(API):
                 embedding_function=embedding_function,
             )
         else:
-            raise ValueError(f"Collection {name} does not exist.")
+            raise CollectionNotFoundError(f"Collection {name} does not exist.")
 
     @override
     def list_collections(self) -> Sequence[Collection]:
@@ -225,7 +225,7 @@ class SegmentAPI(API):
                 embedding_function=None,
             )
         else:
-            raise ValueError(f"Collection {id} does not exist.")
+            raise CollectionNotFoundError(f"Collection with id {id} does not exist.")
 
     @override
     def delete_collection(self, name: str) -> Collection:
@@ -241,7 +241,7 @@ class SegmentAPI(API):
             return Collection(id=existing[0]["id"], name=existing[0]["name"], metadata=existing[0]["metadata"],
                               client=self)
         else:
-            raise ValueError(f"Collection {name} does not exist.")
+            raise CollectionNotFoundError(f"Collection {name} does not exist.")
 
     @override
     def _add(
