@@ -8,7 +8,6 @@ from fastapi.routing import APIRoute
 from fastapi import HTTPException, status
 from uuid import UUID
 
-
 import chromadb
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import GetResult, QueryResult
@@ -49,7 +48,7 @@ def use_route_names_as_operation_ids(app: _FastAPI) -> None:
 
 
 async def catch_exceptions_middleware(
-    request: Request, call_next: Callable[[Request], Any]
+        request: Request, call_next: Callable[[Request], Any]
 ) -> Response:
     try:
         return await call_next(request)
@@ -77,7 +76,7 @@ class ChromaAPIRouter(fastapi.APIRouter):
         # include the non-"/" path. If kwargs["include_in_schema"] is False, include
         # neither.
         exclude_from_schema = (
-            "include_in_schema" in kwargs and not kwargs["include_in_schema"]
+                "include_in_schema" in kwargs and not kwargs["include_in_schema"]
         )
 
         def include_in_schema(path: str) -> bool:
@@ -113,22 +112,27 @@ class FastAPI(chromadb.server.Server):
 
         self.router = ChromaAPIRouter()
 
-        self.router.add_api_route("/api/v1", self.root, methods=["GET"])
-        self.router.add_api_route("/api/v1/reset", self.reset, methods=["POST"])
-        self.router.add_api_route("/api/v1/version", self.version, methods=["GET"])
-        self.router.add_api_route("/api/v1/heartbeat", self.heartbeat, methods=["GET"])
+        self.router.add_api_route("/api/v1", self.root, methods=["GET"], description="Heartbeat endpoint")
+        self.router.add_api_route("/api/v1/reset", self.reset, methods=["POST"],
+                                  description="Resets the database. WARNING: This will delete all data in the database.")
+        self.router.add_api_route("/api/v1/version", self.version, methods=["GET"],
+                                  description="Returns the version of the Chroma API")
+        self.router.add_api_route("/api/v1/heartbeat", self.heartbeat, methods=["GET"],
+                                  description="Heartbeat endpoint")
 
         self.router.add_api_route(
             "/api/v1/collections",
             self.list_collections,
             methods=["GET"],
             response_model=None,
+            description="Lists all collections",
         )
         self.router.add_api_route(
             "/api/v1/collections",
             self.create_collection,
             methods=["POST"],
             response_model=None,
+            description="Creates a new collection",
         )
 
         self.router.add_api_route(
@@ -137,6 +141,7 @@ class FastAPI(chromadb.server.Server):
             methods=["POST"],
             status_code=status.HTTP_201_CREATED,
             response_model=None,
+            description="Adds an embedding to a collection",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/update",
@@ -149,48 +154,56 @@ class FastAPI(chromadb.server.Server):
             self.upsert,
             methods=["POST"],
             response_model=None,
+            description="Adds an embedding to a collection if it does not exist, otherwise updates it",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/get",
             self.get,
             methods=["POST"],
             response_model=None,
+            description="Gets embeddings from a collection",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/delete",
             self.delete,
             methods=["POST"],
             response_model=None,
+            description="Deletes embeddings from a collection",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/count",
             self.count,
             methods=["GET"],
             response_model=None,
+            description="Gets the number of embeddings/documents in a collection",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}/query",
             self.get_nearest_neighbors,
             methods=["POST"],
             response_model=None,
+            description="Gets the nearest neighbors of an embedding in a collection",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_name}",
             self.get_collection,
             methods=["GET"],
             response_model=None,
+            description="Gets a collection by name",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_id}",
             self.update_collection,
             methods=["PUT"],
             response_model=None,
+            description="Updates a collection name and/or metadata",
         )
         self.router.add_api_route(
             "/api/v1/collections/{collection_name}",
             self.delete_collection,
             methods=["DELETE"],
             response_model=None,
+            description="Deletes a collection",
         )
 
         self._app.include_router(self.router)
@@ -223,7 +236,7 @@ class FastAPI(chromadb.server.Server):
         return self._api.get_collection(collection_name)
 
     def update_collection(
-        self, collection_id: str, collection: UpdateCollection
+            self, collection_id: str, collection: UpdateCollection
     ) -> None:
         return self._api._modify(
             id=_uuid(collection_id),
@@ -292,7 +305,7 @@ class FastAPI(chromadb.server.Server):
         return self._api.reset()
 
     def get_nearest_neighbors(
-        self, collection_id: str, query: QueryEmbedding
+            self, collection_id: str, query: QueryEmbedding
     ) -> QueryResult:
         nnresult = self._api._query(
             collection_id=_uuid(collection_id),

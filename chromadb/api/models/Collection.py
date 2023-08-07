@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, Optional, Tuple, cast, List
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, Field
 from uuid import UUID
 import chromadb.utils.embedding_functions as ef
 
@@ -36,9 +36,10 @@ if TYPE_CHECKING:
 
 
 class Collection(BaseModel):
-    name: str
-    id: UUID
-    metadata: Optional[CollectionMetadata] = None
+    name: str = Field(..., description="The name of the collection")
+    id: UUID = Field(..., description="The id of the collection")
+    metadata: Optional[CollectionMetadata] = Field(None, description="The metadata to associate with the collection",
+                                                   example={"type": "pdf-docs"})
     _client: "API" = PrivateAttr()
     _embedding_function: Optional[EmbeddingFunction] = PrivateAttr()
 
