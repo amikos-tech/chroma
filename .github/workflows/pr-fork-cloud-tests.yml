@@ -1,0 +1,45 @@
+name: PR Cloud Tests
+
+# This workflow runs cloud tests for all PRs using pull_request_target.
+# - For non-fork PRs: runs automatically (has secrets access)
+# - For fork PRs: requires 'safe-to-test' label (security gate)
+#
+# Using pull_request_target ensures:
+# 1. Secrets are always accessible (runs in base repo context)
+# 2. Workflow code comes from main branch (not PR), preventing malicious changes
+#
+# This creates a single required check that works for both fork and non-fork PRs.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+    branches:
+      - main
+
+jobs:
+  test-live-cloud:
+    name: test-live-cloud
+    # Run if: (not a fork) OR (is a fork AND has 'safe-to-test' label)
+    if: >-
+      github.event.pull_request.head.repo.fork != true ||
+      (github.event.pull_request.head.repo.fork == true &&
+       contains(github.event.pull_request.labels.*.name, 'safe-to-test'))
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+      RUST_MIN_STACK_SIZE: 8388608
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          # Checkout the PR head commit
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup
+        uses: ./.github/actions/rust
+        with:
+          github-token: ${{ github.token }}
+      - name: Test
+        run: cargo nextest run --profile live_cloud
+        env:
+          CHROMA_CLOUD_API_KEY: ${{ secrets.TEST_CHROMA_CLOUD_API_KEY }}
